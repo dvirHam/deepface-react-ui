@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot "local-config.ps1")
 
-Write-Host "=== DeepFace React UI — local (non-Docker) setup ==="
+Write-Host "=== DeepFace React UI - local (non-Docker) setup ==="
 Write-Host ""
 
 $Python = Get-LocalPython
@@ -16,7 +16,7 @@ Set-Location $Script:UiRoot
 if (-not (Test-Path (Join-Path $Script:UiRoot "node_modules"))) {
     npm install
 } else {
-    Write-Host "node_modules already exists — skipping npm install"
+    Write-Host "node_modules already exists - skipping npm install"
 }
 
 if (-not (Test-Path (Join-Path $Script:UiRoot ".env"))) {

@@ -7,6 +7,14 @@ import {
 } from './config';
 
 const EVENT_FILTERS = ['', 'verify', 'analyze', 'register', 'unverified_saved'];
+const UNVERIFIED_ONLY_FILTER = 'unverified_only';
+
+function isUnverifiedEvent(event) {
+  return (
+    event.event_type === 'unverified_saved' ||
+    (event.event_type === 'verify' && event.decision === 'not_verified')
+  );
+}
 
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) {
@@ -23,6 +31,7 @@ function MonitorPage() {
   const [scope, setScope] = useState('run');
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [unverifiedImages, setUnverifiedImages] = useState([]);
 
   const loadMonitorData = useCallback(async () => {
     setLoading(true);
@@ -31,29 +40,41 @@ function MonitorPage() {
     if (queryRunId) {
       params.set('run_id', queryRunId);
     }
-    if (eventFilter) {
+    if (eventFilter && eventFilter !== UNVERIFIED_ONLY_FILTER) {
       params.set('event_type', eventFilter);
     }
 
     try {
       const statsParams = queryRunId ? `?run_id=${encodeURIComponent(queryRunId)}` : '';
-      const [statsResponse, eventsResponse] = await Promise.all([
+      const unverifiedQuery = queryRunId ? `?run_id=${encodeURIComponent(queryRunId)}` : '';
+      const [statsResponse, eventsResponse, unverifiedResponse] = await Promise.all([
         fetch(`${serviceEndpoint}/monitor/stats${statsParams}`, {
           headers: getAuthHeaders(),
         }),
         fetch(`${serviceEndpoint}/monitor/events?${params.toString()}`, {
           headers: getAuthHeaders(),
         }),
+        fetch(`${serviceEndpoint}/unverified${unverifiedQuery}`, {
+          headers: getAuthHeaders(),
+        }),
       ]);
 
       const statsData = await statsResponse.json();
       const eventsData = await eventsResponse.json();
+      const unverifiedData = await unverifiedResponse.json();
 
       if (statsResponse.status === 200) {
         setStats(statsData);
       }
       if (eventsResponse.status === 200) {
-        setEvents(eventsData.results || []);
+        let results = eventsData.results || [];
+        if (eventFilter === UNVERIFIED_ONLY_FILTER) {
+          results = results.filter(isUnverifiedEvent);
+        }
+        setEvents(results);
+      }
+      if (unverifiedResponse.status === 200) {
+        setUnverifiedImages(unverifiedData.results || []);
       }
     } catch (error) {
       console.error('Exception while loading monitor data:', error);
@@ -72,6 +93,7 @@ function MonitorPage() {
     <div className="monitor-page">
       <nav className="app-nav">
         <a href="#">Camera</a>
+        <a href="#/unverified">Unverified</a>
         <a href="#/monitor" className="active">
           Monitor
         </a>
@@ -96,13 +118,26 @@ function MonitorPage() {
         <label>
           Event type
           <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
-            {EVENT_FILTERS.map((value) => (
-              <option key={value || 'all'} value={value}>
-                {value || 'All events'}
+            <option value="">All events</option>
+            <option value={UNVERIFIED_ONLY_FILTER}>Unverified only</option>
+            {EVENT_FILTERS.filter(Boolean).map((value) => (
+              <option key={value} value={value}>
+                {value}
               </option>
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          className={eventFilter === UNVERIFIED_ONLY_FILTER ? 'filter-preset active' : 'filter-preset'}
+          onClick={() =>
+            setEventFilter((current) =>
+              current === UNVERIFIED_ONLY_FILTER ? '' : UNVERIFIED_ONLY_FILTER
+            )
+          }
+        >
+          Unverified only
+        </button>
         <button type="button" onClick={loadMonitorData}>
           Refresh
         </button>
@@ -145,8 +180,37 @@ function MonitorPage() {
         </section>
       )}
 
+      {(eventFilter === UNVERIFIED_ONLY_FILTER || unverifiedImages.length > 0) && (
+        <section className="monitor-unverified-gallery">
+          <h2>Unverified screenshots ({unverifiedImages.length})</h2>
+          {unverifiedImages.length === 0 ? (
+            <p className="monitor-hint">No unverified screenshots in this scope.</p>
+          ) : (
+            <ul className="monitor-preview-grid">
+              {unverifiedImages.map((image) => (
+                <li key={image.id} className="monitor-preview-card">
+                  <img
+                    src={image.preview || image.img}
+                    alt={`Unverified ${image.id}`}
+                    className="monitor-preview-thumb"
+                  />
+                  <div className="monitor-preview-meta">
+                    <span>{new Date(image.created_at).toLocaleString()}</span>
+                    {Array.isArray(image.analysis) && image.analysis[0]?.summary && (
+                      <span>{image.analysis[0].summary}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section className="monitor-events">
-        <h2>Recent decisions</h2>
+        <h2>
+          {eventFilter === UNVERIFIED_ONLY_FILTER ? 'Unverified decisions' : 'Recent decisions'}
+        </h2>
         {events.length === 0 && !loading && (
           <p className="monitor-hint">No events yet. Use the camera page to verify faces.</p>
         )}

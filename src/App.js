@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './App.css';
 import MonitorPage from './MonitorPage';
+import UnverifiedPage from './UnverifiedPage';
+import UnverifiedList from './components/UnverifiedList';
 import {
   serviceEndpoint,
   facialRecognitionModel,
@@ -15,6 +17,16 @@ import {
 
 const IDENTITY_NAMES_KEY = 'deepface_registered_identities';
 
+function getPageFromHash() {
+  if (window.location.hash === '#/monitor') {
+    return 'monitor';
+  }
+  if (window.location.hash === '#/unverified') {
+    return 'unverified';
+  }
+  return 'home';
+}
+
 function App() {
   const runId = getRunId();
 
@@ -23,7 +35,8 @@ function App() {
   const verifyInFlightRef = useRef(false);
   const autoSaveLimitReachedRef = useRef(false);
 
-  const [page, setPage] = useState(window.location.hash === '#/monitor' ? 'monitor' : 'home');
+  const [page, setPage] = useState(getPageFromHash());
+  const [showOnlyUnverified, setShowOnlyUnverified] = useState(false);
 
   const [base64Image, setBase64Image] = useState('');
   const [isVerified, setIsVerified] = useState(null);
@@ -47,7 +60,7 @@ function App() {
 
   useEffect(() => {
     const onHashChange = () => {
-      setPage(window.location.hash === '#/monitor' ? 'monitor' : 'home');
+      setPage(getPageFromHash());
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -473,6 +486,19 @@ function App() {
     return <MonitorPage />;
   }
 
+  if (page === 'unverified') {
+    return (
+      <UnverifiedPage
+        pendingRegisterNames={pendingRegisterNames}
+        setPendingRegisterNames={setPendingRegisterNames}
+        onRegister={registerUnverified}
+        onRemove={removeUnverifiedImage}
+      />
+    );
+  }
+
+  const cameraVisible = !showOnlyUnverified;
+
   return (
     <div
       className="App"
@@ -489,13 +515,24 @@ function App() {
     >
       <header className="App-header">
         <nav className="app-nav">
-          <a href="#" className="active">
+          <a href="#" className={!showOnlyUnverified ? 'active' : ''}>
             Camera
           </a>
+          <a href="#/unverified">Unverified ({runSaveCount})</a>
           <a href="#/monitor">Monitor</a>
         </nav>
 
         <h1>DeepFace React App</h1>
+        <div className="view-toggle">
+          <label className="auto-toggle">
+            <input
+              type="checkbox"
+              checked={showOnlyUnverified}
+              onChange={(e) => setShowOnlyUnverified(e.target.checked)}
+            />
+            Show unverified only
+          </label>
+        </div>
         <p className="run-info">
           Run {runId.slice(0, 8)}… · auto-saved unverified {runSaveCount}/{MAX_UNVERIFIED_PER_RUN}
         </p>
@@ -506,9 +543,16 @@ function App() {
           </p>
         )}
 
-        {isVerified === true && <p style={{ color: 'green' }}>Verified. Welcome {identity}</p>}
-        {isVerified === false && <p style={{ color: 'red' }}>Not Verified</p>}
-        {lastDecision && lastDecision.distance !== null && lastDecision.distance !== undefined && (
+        {cameraVisible && isVerified === true && (
+          <p style={{ color: 'green' }}>Verified. Welcome {identity}</p>
+        )}
+        {cameraVisible && isVerified === false && (
+          <p style={{ color: 'red' }}>Not Verified</p>
+        )}
+        {cameraVisible &&
+          lastDecision &&
+          lastDecision.distance !== null &&
+          lastDecision.distance !== undefined && (
           <p className="decision-detail">
             distance {lastDecision.distance.toFixed(4)} / threshold{' '}
             {lastDecision.threshold.toFixed(4)}
@@ -517,7 +561,9 @@ function App() {
               : ''}
           </p>
         )}
-        {isAnalyzed === true && <p style={{ color: 'green' }}>{analysis.join()}</p>}
+        {cameraVisible && isAnalyzed === true && (
+          <p style={{ color: 'green' }}>{analysis.join()}</p>
+        )}
         {registerStatus === 'success' && (
           <p style={{ color: 'green' }}>Registered {registerName.trim()} in database</p>
         )}
@@ -525,126 +571,66 @@ function App() {
           <p style={{ color: 'red' }}>{registerMessage || 'Could not register'}</p>
         )}
 
-        <video ref={videoRef} style={{ width: '100%', maxWidth: '500px' }} />
-        <br />
-        <br />
-        <label className="auto-toggle">
-          <input
-            type="checkbox"
-            checked={autoMonitoring}
-            onChange={(e) => setAutoMonitoring(e.target.checked)}
-          />
-          Auto-verify every {AUTO_VERIFY_INTERVAL_MS / 1000}s (saves unverified on failure)
-        </label>
-        <br />
-        <br />
-        <button onClick={() => captureImage('verify')}>Verify now</button>
-        <button onClick={() => captureImage('analyze')}>Analyze</button>
-        <br />
-        <br />
-        <div style={{ marginBottom: '1rem' }}>
-          <input
-            type="text"
-            placeholder="Identity name"
-            value={registerName}
-            onChange={(e) => {
-              setRegisterName(e.target.value);
-              setRegisterStatus(null);
-              setRegisterMessage('');
-            }}
-            style={{ padding: '0.5rem', marginRight: '0.5rem' }}
-          />
-          <button onClick={() => captureImage('register')}>Register</button>
-        </div>
-        {registeredIdentities.length > 0 && (
-          <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-            Registered identities: {registeredIdentities.join(', ')}
-          </p>
-        )}
-        <br />
-        <br />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-        {base64Image && (
-          <img src={base64Image} alt="Captured frame" style={{ maxWidth: '200px' }} />
+        {cameraVisible && (
+          <>
+            <video ref={videoRef} style={{ width: '100%', maxWidth: '500px' }} />
+            <br />
+            <br />
+            <label className="auto-toggle">
+              <input
+                type="checkbox"
+                checked={autoMonitoring}
+                onChange={(e) => setAutoMonitoring(e.target.checked)}
+              />
+              Auto-verify every {AUTO_VERIFY_INTERVAL_MS / 1000}s (saves unverified on failure)
+            </label>
+            <br />
+            <br />
+            <button onClick={() => captureImage('verify')}>Verify now</button>
+            <button onClick={() => captureImage('analyze')}>Analyze</button>
+            <br />
+            <br />
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Identity name"
+                value={registerName}
+                onChange={(e) => {
+                  setRegisterName(e.target.value);
+                  setRegisterStatus(null);
+                  setRegisterMessage('');
+                }}
+                style={{ padding: '0.5rem', marginRight: '0.5rem' }}
+              />
+              <button onClick={() => captureImage('register')}>Register</button>
+            </div>
+            {registeredIdentities.length > 0 && (
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                Registered identities: {registeredIdentities.join(', ')}
+              </p>
+            )}
+            <br />
+            <br />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            {base64Image && (
+              <img src={base64Image} alt="Captured frame" style={{ maxWidth: '200px' }} />
+            )}
+          </>
         )}
 
-        {unverifiedLoading && <p className="unverified-hint">Loading unverified images...</p>}
+        {!cameraVisible && <canvas ref={canvasRef} style={{ display: 'none' }} />}
 
-        {!unverifiedLoading && (unverifiedImages.length > 0 || runSaveCount > 0) && (
-          <section className="unverified-section">
-            <h2>Unverified Images ({unverifiedImages.length || runSaveCount})</h2>
-            <p className="unverified-hint">
-              Failed auto-verifications are saved automatically (max {MAX_UNVERIFIED_PER_RUN} per
-              run). Each entry shows a screenshot preview plus age/gender/emotion analysis.
-            </p>
-            <ul className="unverified-grid">
-              {unverifiedImages.map((image) => {
-                const previewSrc = image.preview || image.img;
-                return (
-                <li key={image.id} className="unverified-card">
-                  <div className="unverified-preview">
-                    <span className="unverified-preview-label">Screenshot preview</span>
-                    {previewSrc ? (
-                      <img
-                        src={previewSrc}
-                        alt={`Unverified screenshot ${image.id}`}
-                        className="unverified-thumbnail"
-                      />
-                    ) : (
-                      <div className="unverified-thumbnail unverified-preview-placeholder">
-                        Preview unavailable
-                      </div>
-                    )}
-                    {image.created_at && (
-                      <span className="unverified-captured-at">
-                        {new Date(image.created_at).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  {Array.isArray(image.analysis) && image.analysis.length > 0 ? (
-                    image.analysis.map((face, faceIndex) => (
-                      <div key={faceIndex} className="unverified-analysis">
-                        <p className="unverified-analysis-summary">{face.summary}</p>
-                        {face.emotion_scores && (
-                          <p className="unverified-analysis-detail">
-                            Emotion:{' '}
-                            {Object.entries(face.emotion_scores)
-                              .sort(([, a], [, b]) => b - a)
-                              .slice(0, 3)
-                              .map(([name, score]) => `${name} ${Math.round(score)}%`)
-                              .join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="unverified-analysis-muted">Analysis unavailable</p>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Identity name"
-                    value={pendingRegisterNames[image.id] || ''}
-                    onChange={(e) =>
-                      setPendingRegisterNames((prev) => ({
-                        ...prev,
-                        [image.id]: e.target.value,
-                      }))
-                    }
-                    className="unverified-name-input"
-                  />
-                  <div className="unverified-actions">
-                    <button type="button" onClick={() => registerUnverified(image.id)}>
-                      Register
-                    </button>
-                    <button type="button" onClick={() => removeUnverifiedImage(image.id)}>
-                      Remove
-                    </button>
-                  </div>
-                </li>
-                );
-              })}
-            </ul>
-          </section>
+        {(showOnlyUnverified || unverifiedImages.length > 0 || runSaveCount > 0) && (
+          <UnverifiedList
+            images={unverifiedImages}
+            loading={unverifiedLoading}
+            runSaveCount={runSaveCount}
+            pendingRegisterNames={pendingRegisterNames}
+            setPendingRegisterNames={setPendingRegisterNames}
+            onRegister={registerUnverified}
+            onRemove={removeUnverifiedImage}
+            emptyMessage="No unverified screenshots in this run yet."
+          />
         )}
       </header>
     </div>

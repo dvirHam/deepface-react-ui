@@ -3,6 +3,7 @@ import './App.css';
 import MonitorPage from './MonitorPage';
 import UnverifiedPage from './UnverifiedPage';
 import UnverifiedList from './components/UnverifiedList';
+import { suggestNameFromAnalysis } from './utils/unverifiedHelpers';
 import {
   serviceEndpoint,
   facialRecognitionModel,
@@ -106,7 +107,7 @@ function App() {
     }
   };
 
-  const addUnverifiedImage = async (dataUrl) => {
+  const addUnverifiedImage = async (dataUrl, verifyContext = null) => {
     if (autoSaveLimitReachedRef.current) {
       return { limitReached: true };
     }
@@ -120,6 +121,7 @@ function App() {
           run_id: runId,
           detector_backend: faceDetector,
           anti_spoofing: antiSpoofing,
+          verify_context: verifyContext,
         }),
       });
       const data = await response.json();
@@ -154,6 +156,7 @@ function App() {
             analysis: data.analysis,
             created_at: data.created_at || new Date().toISOString(),
             run_id: runId,
+            verify_context: data.verify_context || verifyContext,
           },
           ...withoutDuplicate,
         ];
@@ -254,7 +257,15 @@ function App() {
         }
 
         if (!verified && autoSave && !autoSaveLimitReachedRef.current) {
-          await addUnverifiedImage(base64Img);
+          await addUnverifiedImage(base64Img, {
+            nearest_matches: matches.slice(0, 3).map((match) => ({
+              identity: match.img_name,
+              distance: match.distance,
+              threshold: match.threshold,
+              confidence: match.confidence,
+            })),
+            decision: 'not_verified',
+          });
         }
         return decision;
       }
@@ -275,7 +286,11 @@ function App() {
       }
 
       if (autoSave && !autoSaveLimitReachedRef.current) {
-        await addUnverifiedImage(base64Img);
+        await addUnverifiedImage(base64Img, {
+          nearest_matches: [],
+          decision: 'not_verified',
+          reason: 'no_match_within_threshold',
+        });
       }
       return decision;
     },
@@ -435,11 +450,45 @@ function App() {
 
   const registerUnverified = async (id) => {
     const image = unverifiedImages.find((img) => img.id === id);
-    const name = (pendingRegisterNames[id] || '').trim();
+    let name = (pendingRegisterNames[id] || '').trim();
+    if (!name && image) {
+      name = suggestNameFromAnalysis(image);
+    }
     if (!image) {
       return;
     }
     await register(image.img, name, id);
+  };
+
+  const registerUnverifiedBulk = async (ids, bulkBaseName) => {
+    let success = 0;
+    let failed = 0;
+
+    for (let index = 0; index < ids.length; index += 1) {
+      const id = ids[index];
+      const image = unverifiedImages.find((img) => img.id === id);
+      if (!image) {
+        failed += 1;
+        continue;
+      }
+
+      let name = (pendingRegisterNames[id] || '').trim();
+      if (!name) {
+        name = suggestNameFromAnalysis(image);
+      }
+      if (bulkBaseName) {
+        name = ids.length > 1 ? `${bulkBaseName}_${index + 1}` : bulkBaseName;
+      }
+
+      const ok = await register(image.img, name, id);
+      if (ok) {
+        success += 1;
+      } else {
+        failed += 1;
+      }
+    }
+
+    return { success, failed };
   };
 
   const analyze = async (base64Image) => {
@@ -493,6 +542,7 @@ function App() {
         setPendingRegisterNames={setPendingRegisterNames}
         onRegister={registerUnverified}
         onRemove={removeUnverifiedImage}
+        onBulkRegister={registerUnverifiedBulk}
       />
     );
   }
@@ -629,6 +679,7 @@ function App() {
             setPendingRegisterNames={setPendingRegisterNames}
             onRegister={registerUnverified}
             onRemove={removeUnverifiedImage}
+            onBulkRegister={registerUnverifiedBulk}
             emptyMessage="No unverified screenshots in this run yet."
           />
         )}

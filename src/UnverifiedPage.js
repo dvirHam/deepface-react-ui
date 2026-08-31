@@ -12,6 +12,7 @@ function UnverifiedPage({
   setPendingRegisterNames,
   onRegister,
   onRemove,
+  onBulkRegister,
 }) {
   const runId = getRunId();
   const [scope, setScope] = useState('run');
@@ -91,6 +92,7 @@ function UnverifiedPage({
         setPendingRegisterNames={setPendingRegisterNames}
         onRegister={onRegister}
         onRemove={onRemove}
+        onBulkRegister={onBulkRegister}
         emptyMessage={
           scope === 'run'
             ? 'No unverified screenshots in this run yet.'

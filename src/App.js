@@ -3,6 +3,7 @@ import './App.css';
 import MonitorPage from './MonitorPage';
 import UnverifiedPage from './UnverifiedPage';
 import UnverifiedList from './components/UnverifiedList';
+import VoicePanel from './VoicePanel';
 import { suggestNameFromAnalysis } from './utils/unverifiedHelpers';
 import {
   serviceEndpoint,
@@ -683,6 +684,11 @@ function App() {
             emptyMessage="No unverified screenshots in this run yet."
           />
         )}
+
+        <VoicePanel
+          registeredIdentities={registeredIdentities}
+          onIdentityRegistered={setRegisteredIdentities}
+        />
       </header>
     </div>
   );

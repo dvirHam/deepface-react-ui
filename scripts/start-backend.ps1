@@ -1,7 +1,7 @@
 # Start DeepFace API locally with Python + Flask (no Docker).
 $ErrorActionPreference = "Stop"
 
-. (Join-Path $PSScriptRoot "local-config.ps1")
+. (Join-Path $PSScriptRoot "dev-paths.ps1")
 
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"

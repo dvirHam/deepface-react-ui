@@ -1,7 +1,7 @@
 # Start React UI with npm (no Docker).
 $ErrorActionPreference = "Stop"
 
-. (Join-Path $PSScriptRoot "local-config.ps1")
+. (Join-Path $PSScriptRoot "dev-paths.ps1")
 
 Set-Location $Script:UiRoot
 

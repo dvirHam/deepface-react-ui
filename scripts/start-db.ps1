@@ -1,24 +1,21 @@
-# Verify local Postgres is reachable (native install on port 5432). No Docker.
+# Create or verify the local deepface Postgres user/database.
+param(
+    [string]$PostgresPassword = ""
+)
+
 $ErrorActionPreference = "Stop"
 
-. (Join-Path $PSScriptRoot "local-config.ps1")
+. (Join-Path $PSScriptRoot "dev-paths.ps1")
 
-Write-Host "Checking Postgres at ${Script:DeepFacePostgresHost}:${Script:DeepFacePostgresPort} ..."
+Write-Host "Expected connection:"
+Write-Host "  $Script:DeepFacePostgresUri"
+Write-Host ""
 
 if (Test-DeepFacePostgres) {
-    Write-Host "Postgres OK: $Script:DeepFacePostgresUri"
+    Write-Host "Postgres already configured."
     exit 0
 }
 
 Write-LocalSetupHint
-
-$RunDbSetup = Read-Host "Create deepface database now? (y/N)"
-if ($RunDbSetup -eq "y" -or $RunDbSetup -eq "Y") {
-    Setup-NativePostgres
-    if (Test-DeepFacePostgres) {
-        Write-Host "Postgres OK: $Script:DeepFacePostgresUri"
-        exit 0
-    }
-}
-
-exit 1
+Initialize-DeepFacePostgres -PostgresPassword $PostgresPassword
+Write-Host "Restart the API: .\start-backend.ps1"

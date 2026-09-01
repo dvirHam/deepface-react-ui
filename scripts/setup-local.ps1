@@ -1,7 +1,7 @@
 # One-time local setup: npm deps, DeepFace Python API, psycopg, optional Postgres DB.
 $ErrorActionPreference = "Stop"
 
-. (Join-Path $PSScriptRoot "local-config.ps1")
+. (Join-Path $PSScriptRoot "dev-paths.ps1")
 
 Write-Host "=== DeepFace React UI - local (non-Docker) setup ==="
 Write-Host ""

@@ -1,12 +1,12 @@
 export const voiceServiceEndpoint =
-  process.env.REACT_APP_VOICE_SERVICE_ENDPOINT || 'http://localhost:5006';
-export const voiceLanguage = process.env.REACT_APP_VOICE_LANGUAGE || 'he';
+  import.meta.env.REACT_APP_VOICE_SERVICE_ENDPOINT || 'http://localhost:5006';
+export const voiceLanguage = import.meta.env.REACT_APP_VOICE_LANGUAGE || 'he';
 
 export const UNVERIFIED_AUDIO_KEY = 'deepface_unverified_audio';
 
 export function getVoiceAuthHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  const token = process.env.REACT_APP_VOICE_AUTH_TOKEN;
+  const token = import.meta.env.REACT_APP_VOICE_AUTH_TOKEN;
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }

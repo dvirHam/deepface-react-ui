@@ -27,7 +27,7 @@ if (Test-Path (Join-Path $Script:VoiceApiRoot "scripts\start-api.ps1")) {
     Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", $VoiceApiScript
     Start-Sleep -Seconds 2
 } else {
-    Write-Host "Voice API repo not found at $Script:VoiceApiRoot — skipping (optional)."
+    Write-Host "Voice API repo not found at $Script:VoiceApiRoot - skipping (optional)."
 }
 
 Write-Host "Opening React UI window (port 3000) ..."

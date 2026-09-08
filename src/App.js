@@ -68,20 +68,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(IDENTITY_NAMES_KEY);
-      if (stored) {
-        setRegisteredIdentities(JSON.parse(stored));
-      }
-    } catch (storageError) {
-      console.error('Error loading registered identity names:', storageError);
-    }
-
-    fetchUnverifiedImages();
-  }, []);
-
-  const fetchUnverifiedImages = async () => {
+  const fetchUnverifiedImages = useCallback(async () => {
     setUnverifiedLoading(true);
     try {
       const response = await fetch(
@@ -106,7 +93,20 @@ function App() {
     } finally {
       setUnverifiedLoading(false);
     }
-  };
+  }, [runId]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(IDENTITY_NAMES_KEY);
+      if (stored) {
+        setRegisteredIdentities(JSON.parse(stored));
+      }
+    } catch (storageError) {
+      console.error('Error loading registered identity names:', storageError);
+    }
+
+    fetchUnverifiedImages();
+  }, [fetchUnverifiedImages]);
 
   const addUnverifiedImage = async (dataUrl, verifyContext = null) => {
     if (autoSaveLimitReachedRef.current) {

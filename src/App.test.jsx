@@ -27,5 +27,5 @@ beforeEach(() => {
 
 test('renders app title', () => {
   render(<App />);
-  expect(screen.getByText(/DeepFace React App/i)).toBeInTheDocument();
+  expect(screen.getByText(/^DeepFace$/i)).toBeInTheDocument();
 });

@@ -63,9 +63,9 @@ function UnverifiedPage({
         <a href="#/monitor">Monitor</a>
       </nav>
 
-      <header className="unverified-page-header">
+      <header className="page-header unverified-page-header">
         <h1>Unverified Queue</h1>
-        <p className="unverified-hint">
+        <p className="page-subtitle unverified-hint">
           Review and register faces that failed verification. Limit: {MAX_UNVERIFIED_PER_RUN} per
           run.
         </p>
@@ -79,7 +79,7 @@ function UnverifiedPage({
             <option value="all">All runs</option>
           </select>
         </label>
-        <button type="button" onClick={loadImages}>
+        <button type="button" className="btn btn-secondary" onClick={loadImages}>
           Refresh
         </button>
       </div>

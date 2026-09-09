@@ -102,3 +102,44 @@ function Write-LocalSetupHint {
     Write-Host "  Or in pgAdmin run: scripts\setup-deepface-db-pgadmin.sql"
     Write-Host ""
 }
+
+function Stop-ListenersOnPort {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$Port
+    )
+
+    $Connections = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if (-not $Connections) {
+        return @()
+    }
+
+    $Stopped = @()
+    $Pids = $Connections.OwningProcess | Sort-Object -Unique
+    foreach ($processId in $Pids) {
+        try {
+            $Process = Get-Process -Id $processId -ErrorAction Stop
+            Stop-Process -Id $processId -Force -ErrorAction Stop
+            $Stopped += [PSCustomObject]@{
+                Port = $Port
+                ProcessId = $processId
+                ProcessName = $Process.ProcessName
+            }
+        } catch {
+            Write-Warning "Could not stop PID $processId on port ${Port}: $_"
+        }
+    }
+
+    return $Stopped
+}
+
+function Get-LocalDevServicePorts {
+    $Ports = @(
+        $Script:DeepFaceApiPort,
+        $Script:VoiceApiPort
+    )
+    for ($Port = $Script:UiPort; $Port -lt $Script:UiPort + 6; $Port++) {
+        $Ports += $Port
+    }
+    return $Ports | Sort-Object -Unique
+}

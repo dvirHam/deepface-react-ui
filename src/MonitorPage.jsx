@@ -99,9 +99,9 @@ function MonitorPage() {
         </a>
       </nav>
 
-      <header className="monitor-header">
+      <header className="page-header monitor-header">
         <h1>Decision Monitor</h1>
-        <p className="monitor-subtitle">
+        <p className="page-subtitle monitor-subtitle">
           How verify / analyze / register decisions were made — distance vs threshold, confidence,
           and model metadata.
         </p>
@@ -138,7 +138,7 @@ function MonitorPage() {
         >
           Unverified only
         </button>
-        <button type="button" onClick={loadMonitorData}>
+        <button type="button" className="btn btn-secondary" onClick={loadMonitorData}>
           Refresh
         </button>
       </div>

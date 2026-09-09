@@ -551,122 +551,148 @@ function App() {
   const cameraVisible = !showOnlyUnverified;
 
   return (
-    <div
-      className="App"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        textAlign: 'center',
-        backgroundColor: '#282c34',
-        color: 'white',
-      }}
-    >
-      <header className="App-header">
-        <nav className="app-nav">
-          <a href="#" className={!showOnlyUnverified ? 'active' : ''}>
-            Camera
-          </a>
-          <a href="#/unverified">Unverified ({runSaveCount})</a>
-          <a href="#/monitor">Monitor</a>
-        </nav>
+    <div className="app-shell">
+      <nav className="app-nav">
+        <a href="#" className={!showOnlyUnverified ? 'active' : ''}>
+          Camera
+        </a>
+        <a href="#/unverified">
+          Unverified <span className="nav-badge">{runSaveCount}</span>
+        </a>
+        <a href="#/monitor">Monitor</a>
+      </nav>
 
-        <h1>DeepFace React App</h1>
-        <div className="view-toggle">
-          <label className="auto-toggle">
-            <input
-              type="checkbox"
-              checked={showOnlyUnverified}
-              onChange={(e) => setShowOnlyUnverified(e.target.checked)}
-            />
-            Show unverified only
-          </label>
-        </div>
+      <header className="app-hero">
+        <h1>DeepFace</h1>
+        <p className="app-subtitle">Facial recognition &amp; attribute analysis</p>
         <p className="run-info">
           Run {runId.slice(0, 8)}… · auto-saved unverified {runSaveCount}/{MAX_UNVERIFIED_PER_RUN}
         </p>
+      </header>
 
-        {autoSaveLimitReached && (
-          <p className="limit-notice">
-            Unverified screenshot limit reached for this run. Register or remove images to continue.
-          </p>
-        )}
+      <div className="view-toggle">
+        <label className="toggle-label">
+          <input
+            type="checkbox"
+            checked={showOnlyUnverified}
+            onChange={(e) => setShowOnlyUnverified(e.target.checked)}
+          />
+          Show unverified only
+        </label>
+      </div>
 
-        {cameraVisible && isVerified === true && (
-          <p style={{ color: 'green' }}>Verified. Welcome {identity}</p>
-        )}
-        {cameraVisible && isVerified === false && (
-          <p style={{ color: 'red' }}>Not Verified</p>
-        )}
-        {cameraVisible &&
-          lastDecision &&
-          lastDecision.distance !== null &&
-          lastDecision.distance !== undefined && (
-          <p className="decision-detail">
-            distance {lastDecision.distance.toFixed(4)} / threshold{' '}
-            {lastDecision.threshold.toFixed(4)}
-            {lastDecision.confidence !== null && lastDecision.confidence !== undefined
-              ? ` · confidence ${lastDecision.confidence.toFixed(1)}%`
-              : ''}
-          </p>
-        )}
-        {cameraVisible && isAnalyzed === true && (
-          <p style={{ color: 'green' }}>{analysis.join()}</p>
-        )}
-        {registerStatus === 'success' && (
-          <p style={{ color: 'green' }}>Registered {registerName.trim()} in database</p>
-        )}
-        {registerStatus === 'error' && (
-          <p style={{ color: 'red' }}>{registerMessage || 'Could not register'}</p>
-        )}
+      {autoSaveLimitReached && (
+        <p className="limit-notice">
+          Unverified screenshot limit reached for this run. Register or remove images to continue.
+        </p>
+      )}
 
+      {cameraVisible && isVerified === true && (
+        <p className="status-banner status-banner--success">Verified. Welcome {identity}</p>
+      )}
+      {cameraVisible && isVerified === false && (
+        <p className="status-banner status-banner--error">Not verified</p>
+      )}
+      {cameraVisible &&
+        lastDecision &&
+        lastDecision.distance !== null &&
+        lastDecision.distance !== undefined && (
+        <p className="decision-detail">
+          distance {lastDecision.distance.toFixed(4)} / threshold{' '}
+          {lastDecision.threshold.toFixed(4)}
+          {lastDecision.confidence !== null && lastDecision.confidence !== undefined
+            ? ` · confidence ${lastDecision.confidence.toFixed(1)}%`
+            : ''}
+        </p>
+      )}
+      {cameraVisible && isAnalyzed === true && (
+        <p className="status-banner status-banner--info">{analysis.join(' · ')}</p>
+      )}
+      {registerStatus === 'success' && (
+        <p className="status-banner status-banner--success">
+          Registered {registerName.trim()} in database
+        </p>
+      )}
+      {registerStatus === 'error' && (
+        <p className="status-banner status-banner--error">
+          {registerMessage || 'Could not register'}
+        </p>
+      )}
+
+      <div className={`home-layout${showOnlyUnverified ? ' home-layout--full' : ''}`}>
         {cameraVisible && (
-          <>
-            <video ref={videoRef} style={{ width: '100%', maxWidth: '500px' }} />
-            <br />
-            <br />
-            <label className="auto-toggle">
-              <input
-                type="checkbox"
-                checked={autoMonitoring}
-                onChange={(e) => setAutoMonitoring(e.target.checked)}
-              />
-              Auto-verify every {AUTO_VERIFY_INTERVAL_MS / 1000}s (saves unverified on failure)
-            </label>
-            <br />
-            <br />
-            <button onClick={() => captureImage('verify')}>Verify now</button>
-            <button onClick={() => captureImage('analyze')}>Analyze</button>
-            <br />
-            <br />
-            <div style={{ marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="Identity name"
-                value={registerName}
-                onChange={(e) => {
-                  setRegisterName(e.target.value);
-                  setRegisterStatus(null);
-                  setRegisterMessage('');
-                }}
-                style={{ padding: '0.5rem', marginRight: '0.5rem' }}
-              />
-              <button onClick={() => captureImage('register')}>Register</button>
+          <section className="camera-panel card">
+            <div className="panel-body camera-controls">
+              <div className="video-frame">
+                <video ref={videoRef} muted playsInline />
+              </div>
+
+              <div className="toggle-row">
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={autoMonitoring}
+                    onChange={(e) => setAutoMonitoring(e.target.checked)}
+                  />
+                  Auto-verify every {AUTO_VERIFY_INTERVAL_MS / 1000}s
+                </label>
+              </div>
+
+              <div className="control-row">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => captureImage('verify')}
+                >
+                  Verify now
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => captureImage('analyze')}
+                >
+                  Analyze
+                </button>
+              </div>
+
+              <div className="register-row">
+                <input
+                  type="text"
+                  placeholder="Identity name"
+                  value={registerName}
+                  onChange={(e) => {
+                    setRegisterName(e.target.value);
+                    setRegisterStatus(null);
+                    setRegisterMessage('');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => captureImage('register')}
+                >
+                  Register
+                </button>
+              </div>
+
+              {registeredIdentities.length > 0 && (
+                <div className="identity-tags">
+                  {registeredIdentities.map((name) => (
+                    <span key={name} className="identity-tag">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              {base64Image && (
+                <div className="captured-preview">
+                  <img src={base64Image} alt="Captured frame" />
+                </div>
+              )}
             </div>
-            {registeredIdentities.length > 0 && (
-              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-                Registered identities: {registeredIdentities.join(', ')}
-              </p>
-            )}
-            <br />
-            <br />
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-            {base64Image && (
-              <img src={base64Image} alt="Captured frame" style={{ maxWidth: '200px' }} />
-            )}
-          </>
+          </section>
         )}
 
         {!cameraVisible && <canvas ref={canvasRef} style={{ display: 'none' }} />}
@@ -684,12 +710,12 @@ function App() {
             emptyMessage="No unverified screenshots in this run yet."
           />
         )}
+      </div>
 
-        <VoicePanel
-          registeredIdentities={registeredIdentities}
-          onIdentityRegistered={setRegisteredIdentities}
-        />
-      </header>
+      <VoicePanel
+        registeredIdentities={registeredIdentities}
+        onIdentityRegistered={setRegisteredIdentities}
+      />
     </div>
   );
 }
